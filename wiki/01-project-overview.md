@@ -1,0 +1,42 @@
+# Project overview
+
+Mock Market is a web application that lets a user practice trading against a **replay of the Indian equity market** driven by historical NSE data.
+
+## Product goals
+
+1. Sign in (mock user today; IDAM later).
+2. Land on a **dashboard** that remains the home surface until logout.
+3. See portfolio growth and the **market date** (latest date for which data exists).
+4. Inspect holdings (units bought in listed NSE companies).
+5. Queue **pre-simulation** buy/sell orders, then start the simulation.
+6. During simulation, trade on a 10-name mock board derived from Nifty 50.
+
+## Non-goals (current phase)
+
+- Real brokerage execution
+- Live market feeds
+- Identity provider / OAuth
+- Persisted multi-user accounts
+
+## Core constraints
+
+| Rule | Detail |
+| --- | --- |
+| Exchange | NSE only (for this simulation) |
+| Max holdings | 3 stocks with non-zero units |
+| Simulation universe | 10 companies from Nifty 50 |
+| Universe inclusion | Must always include every non-zero portfolio holding |
+| Clock | Uses historical data date, not real “today” |
+
+## User journey
+
+```
+Login → Dashboard (pre-sim)
+        ├─ View growth + holdings + cash
+        ├─ Place / cancel pre-simulation orders
+        └─ Begin simulation
+              → Simulation (running)
+                    ├─ 10-stock board
+                    ├─ Live buy/sell (mock fill)
+                    └─ Exit back to dashboard / logout
+```
