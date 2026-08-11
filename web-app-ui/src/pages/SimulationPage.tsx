@@ -21,13 +21,17 @@ export function SimulationPage() {
     loading,
     placeOrder,
     cancelOrder,
-    endSimulation,
-    continueSimulation,
   } = useAppData();
   const navigate = useNavigate();
   const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const [candles, setCandles] = useState<marketApi.CandleBar[]>([]);
   const [candlesLoading, setCandlesLoading] = useState(false);
+
+  useEffect(() => {
+    if (phase === 'PRE_SIMULATION') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [phase, navigate]);
 
   useEffect(() => {
     if (!selectedSymbol && simulationStocks[0]) {
@@ -64,7 +68,6 @@ export function SimulationPage() {
   }
 
   async function handleStop() {
-    await endSimulation();
     navigate('/dashboard');
   }
 
@@ -98,23 +101,14 @@ export function SimulationPage() {
           </p>
         </div>
         <div className="hero-actions">
-          {phase === 'ANALYSIS' && session.cycle < session.maxCycles && (
-            <button
-              type="button"
-              className="btn btn--accent"
-              disabled={loading}
-              onClick={() => void continueSimulation()}
-            >
-              Continue next day
-            </button>
-          )}
+          <span className="muted">Admin controls the clock</span>
           <button
             type="button"
             className="btn btn--ghost"
             disabled={loading}
             onClick={() => void handleStop()}
           >
-            End simulation
+            Back to dashboard
           </button>
         </div>
       </header>

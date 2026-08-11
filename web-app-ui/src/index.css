@@ -566,6 +566,44 @@ p {
   grid-template-columns: repeat(12, 1fr);
 }
 
+.admin-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: start;
+}
+
+.admin-grid__clock {
+  grid-column: span 7;
+  min-width: 0;
+}
+
+.admin-grid__accounts {
+  grid-column: span 5;
+  min-width: 0;
+}
+
+.admin-page .field input[type='date'],
+.admin-page .field input[type='number'] {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.admin-page .hero-actions {
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.admin-monitor {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.admin-monitor .table-wrap {
+  overflow-x: auto;
+}
+
 .dashboard-grid > .growth-panel {
   grid-column: span 7;
   animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -950,7 +988,9 @@ p {
   .simulation-grid > .order-panel,
   .simulation-grid > .growth-panel,
   .simulation-grid > :nth-child(5),
-  .simulation-grid > :nth-child(6) {
+  .simulation-grid > :nth-child(6),
+  .admin-grid__clock,
+  .admin-grid__accounts {
     grid-column: 1 / -1;
   }
 

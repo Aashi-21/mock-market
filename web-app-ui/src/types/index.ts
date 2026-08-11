@@ -113,6 +113,7 @@ export interface SimulationSession {
   tickIndex: number;
   tickCount: number;
   quotes: LiveQuote[];
+  secondsPerMarketMinute?: number;
   updatedAt: string;
   version: number;
 }
@@ -122,5 +123,5 @@ export interface AuthSession {
   token: string;
 }
 
-export const MAX_PORTFOLIO_HOLDINGS = 3;
-export const SIMULATION_MARKET_SIZE = 10;
+export const MAX_PORTFOLIO_HOLDINGS = Number.POSITIVE_INFINITY;
+export const SIMULATION_MARKET_SIZE = Number.POSITIVE_INFINITY;

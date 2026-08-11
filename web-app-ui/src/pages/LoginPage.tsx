@@ -1,19 +1,20 @@
 import { useState, type FormEvent } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { MOCK_CREDENTIALS } from '../data/mockUser';
 import { ThemeToggle } from '../components/common/ThemeToggle';
 
 export function LoginPage() {
-  const { isAuthenticated, login } = useAuth();
+  const { isAuthenticated, login, signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from =
     (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ??
     '/dashboard';
 
-  const [email, setEmail] = useState<string>(MOCK_CREDENTIALS.email);
-  const [password, setPassword] = useState<string>(MOCK_CREDENTIALS.password);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [username, setUsername] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,10 +27,14 @@ export function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
+      if (mode === 'signup') {
+        await signup(username, password, displayName || username);
+      } else {
+        await login(username, password);
+      }
       navigate(from, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setSubmitting(false);
     }
@@ -44,29 +49,60 @@ export function LoginPage() {
           <span className="brand-mark__glyph brand-mark__glyph--lg" aria-hidden />
           <h1 className="login-title">Mock Market</h1>
           <p className="login-lede">
-            Replay the Indian equity market from historical NSE data. Build a book,
-            queue orders, then step through the tape.
+            Create a local trader account, fund your book, and wait for the admin to open
+            the tape.
           </p>
+        </div>
+
+        <div className="segmented" style={{ marginBottom: '1rem' }}>
+          <button
+            type="button"
+            className={`segmented__btn ${mode === 'login' ? 'is-active' : ''}`}
+            onClick={() => setMode('login')}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            className={`segmented__btn ${mode === 'signup' ? 'is-active' : ''}`}
+            onClick={() => setMode('signup')}
+          >
+            Sign up
+          </button>
         </div>
 
         <form className="login-form" onSubmit={(e) => void handleSubmit(e)}>
           <label className="field">
-            <span>Email</span>
+            <span>Username</span>
             <input
-              type="email"
+              type="text"
               autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              pattern="[A-Za-z0-9_]{3,32}"
+              title="3–32 letters, numbers, underscore"
               required
             />
           </label>
+          {mode === 'signup' && (
+            <label className="field">
+              <span>Display name</span>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Optional"
+              />
+            </label>
+          )}
           <label className="field">
             <span>Password</span>
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              minLength={4}
               required
             />
           </label>
@@ -74,15 +110,19 @@ export function LoginPage() {
           {error && <p className="form-error">{error}</p>}
 
           <button type="submit" className="btn btn--primary btn--block" disabled={submitting}>
-            {submitting ? 'Signing in…' : 'Sign in'}
+            {submitting
+              ? mode === 'signup'
+                ? 'Creating…'
+                : 'Signing in…'
+              : mode === 'signup'
+                ? 'Create account'
+                : 'Sign in'}
           </button>
         </form>
 
         <aside className="login-hint">
-          <strong>Mock trader</strong>
-          <code>{MOCK_CREDENTIALS.email}</code>
-          <code>{MOCK_CREDENTIALS.password}</code>
-          <span>IDAM will replace this in a later release.</span>
+          <span>Accounts start at ₹0 and are stored only on this machine.</span>
+          <Link to="/admin/login">Admin login</Link>
         </aside>
       </section>
     </div>

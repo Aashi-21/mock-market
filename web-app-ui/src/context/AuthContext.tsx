@@ -14,7 +14,8 @@ interface AuthContextValue {
   token: string | null;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  signup: (username: string, password: string, displayName?: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -25,8 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(stored);
   const [isBootstrapping] = useState(false);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const next = await authService.login(email, password);
+  const login = useCallback(async (username: string, password: string) => {
+    const next = await authService.login(username, password);
+    setSession(next);
+  }, []);
+
+  const signup = useCallback(async (username: string, password: string, displayName?: string) => {
+    const next = await authService.signup(username, password, displayName);
     setSession(next);
   }, []);
 
@@ -42,9 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(session),
       isBootstrapping,
       login,
+      signup,
       logout,
     }),
-    [session, isBootstrapping, login, logout],
+    [session, isBootstrapping, login, signup, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

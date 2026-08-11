@@ -16,7 +16,7 @@ export function MarketTable({ stocks, holdings, selectedSymbol, onSelectSymbol }
         <div>
           <h2 className="panel__title">Simulation board</h2>
           <p className="panel__subtitle">
-            10 NSE names · click a row for minute candles
+            Full NSE catalog · click a row for minute candles
           </p>
         </div>
       </div>

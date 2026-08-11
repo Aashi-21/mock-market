@@ -147,17 +147,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }, [isAuthenticated, token, refresh]);
 
-  // Long-poll while simulation is active
+  // Poll global session: detect admin start while idle, and stream ticks while live
   useEffect(() => {
-    const active =
-      session?.status === 'TRADING' || session?.status === 'ANALYSIS';
-    if (!isAuthenticated || !active) return;
+    if (!isAuthenticated) return;
 
     pollAbort.current = false;
 
     async function loop() {
       while (!pollAbort.current) {
         try {
+          const active =
+            sessionVersion.current > 0 ||
+            true; /* always try — 204 when idle */
+          void active;
           const data = await marketApi.pollSession(
             sessionVersion.current,
             config.longPollWaitMs,
@@ -166,7 +168,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           if (!data) {
             setSession(null);
             setSimulationStocks([]);
-            break;
+            sessionVersion.current = 0;
+            await new Promise((r) => setTimeout(r, 2000));
+            continue;
           }
           sessionVersion.current = data.session.version;
           setSession(data.session);
@@ -175,7 +179,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setLedger(data.ledger);
           setMarketDate(data.session.currentMarketDate);
           setSimulationStocks(data.session.quotes);
-          if (data.session.status === 'ENDED') break;
+          if (data.session.status === 'ENDED') {
+            setSession(null);
+            setSimulationStocks([]);
+            sessionVersion.current = 0;
+            await refresh();
+          }
         } catch {
           if (pollAbort.current) break;
           await new Promise((r) => setTimeout(r, 1500));
@@ -187,7 +196,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return () => {
       pollAbort.current = true;
     };
-  }, [isAuthenticated, session?.id, session?.status]);
+  }, [isAuthenticated, refresh]);
 
   const placeOrder = useCallback(
     async (input: {
@@ -238,53 +247,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   );
 
   const beginSimulation = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const data = await marketApi.startSimulation();
-      applyBootstrap(data, setters);
-      sessionVersion.current = data.session?.version ?? 0;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start simulation');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [setters]);
+    setError('Only the admin can begin a simulation (/admin/login).');
+    throw new Error('Only the admin can begin a simulation');
+  }, []);
 
   const continueSimulation = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const data = await marketApi.continueSimulation();
-      applyBootstrap(data, setters);
-      sessionVersion.current = data.session?.version ?? 0;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not continue simulation');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [setters]);
+    setError('Only the admin can continue a simulation.');
+    throw new Error('Only the admin can continue a simulation');
+  }, []);
 
   const endSimulation = useCallback(async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const data = await marketApi.stopSimulation();
-      setPortfolio(data.portfolio);
-      setOrders(data.orders);
-      setLedger(data.ledger);
-      setSession(null);
-      setSimulationStocks([]);
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not stop simulation');
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, [refresh]);
+    setError('Only the admin can end a simulation.');
+    throw new Error('Only the admin can end a simulation');
+  }, []);
 
   const resetAccount = useCallback(async () => {
     setError(null);

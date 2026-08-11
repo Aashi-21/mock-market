@@ -1,12 +1,11 @@
 import type { Holding, Stock } from '../types';
-import { MAX_PORTFOLIO_HOLDINGS, SIMULATION_MARKET_SIZE } from '../types';
-import { NIFTY50_POOL, getStockBySymbol } from '../data/mockMarket';
+import { getStockBySymbol, NIFTY50_POOL } from '../data/mockMarket';
 
-export function holdingMarketValue(holding: Holding, price: number): number {
-  return holding.units * price;
+export function nonZeroHoldings(holdings: Holding[]): Holding[] {
+  return holdings.filter((h) => h.units > 0);
 }
 
-export function portfolioInvestedValue(
+export function portfolioMarketValue(
   holdings: Holding[],
   priceLookup: (symbol: string) => number,
 ): number {
@@ -16,19 +15,17 @@ export function portfolioInvestedValue(
   );
 }
 
-export function nonZeroHoldings(holdings: Holding[]): Holding[] {
-  return holdings.filter((h) => h.units > 0);
+export function holdingMarketValue(holding: Holding, lastPrice: number): number {
+  return holding.units * lastPrice;
 }
 
-export function canAddHolding(holdings: Holding[], symbol: string): boolean {
-  const active = nonZeroHoldings(holdings);
-  if (active.some((h) => h.symbol === symbol)) return true;
-  return active.length < MAX_PORTFOLIO_HOLDINGS;
+export function canAddHolding(_holdings: Holding[], _symbol: string): boolean {
+  return true;
 }
 
 /**
- * Build the 10-stock simulation board.
- * Always includes every non-zero portfolio holding, then fills from the Nifty pool.
+ * Build the simulation board from the live quote list (full catalog when admin runs).
+ * Fallback for mocks: entire NIFTY pool.
  */
 export function buildSimulationUniverse(holdings: Holding[]): Stock[] {
   const requiredSymbols = nonZeroHoldings(holdings).map((h) => h.symbol);
@@ -38,13 +35,10 @@ export function buildSimulationUniverse(holdings: Holding[]): Stock[] {
     const stock = getStockBySymbol(symbol);
     if (stock) selected.set(symbol, stock);
   }
-
   for (const stock of NIFTY50_POOL) {
-    if (selected.size >= SIMULATION_MARKET_SIZE) break;
     if (!selected.has(stock.symbol)) selected.set(stock.symbol, stock);
   }
-
-  return Array.from(selected.values()).slice(0, SIMULATION_MARKET_SIZE);
+  return Array.from(selected.values());
 }
 
 export function unitsHeld(holdings: Holding[], symbol: string): number {

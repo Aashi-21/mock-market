@@ -1,11 +1,11 @@
 import { Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAppData } from '../context/AppDataContext';
 import { PortfolioGrowth } from '../components/portfolio/PortfolioGrowth';
 import { HoldingsTable } from '../components/portfolio/HoldingsTable';
 import { OrderForm } from '../components/orders/OrderForm';
 import { PendingOrders } from '../components/orders/PendingOrders';
 import { formatDate, formatINR } from '../utils/format';
-import { useState } from 'react';
 
 export function DashboardPage() {
   const {
@@ -14,17 +14,23 @@ export function DashboardPage() {
     marketDate,
     nextSimulationDate,
     loading,
-    catalogStocks,
     placeOrder,
     cancelOrder,
-    beginSimulation,
     phase,
     resetAccount,
     deposit,
     ledger,
+    catalogStocks,
+    session,
   } = useAppData();
   const navigate = useNavigate();
   const [depositAmount, setDepositAmount] = useState(50_000);
+
+  useEffect(() => {
+    if (phase === 'TRADING' || phase === 'ANALYSIS') {
+      navigate('/simulation', { replace: true });
+    }
+  }, [phase, navigate]);
 
   const orderUniverse = catalogStocks.map((s) => ({
     symbol: s.symbol,
@@ -39,11 +45,6 @@ export function DashboardPage() {
 
   if (phase === 'TRADING' || phase === 'ANALYSIS') {
     return <Navigate to="/simulation" replace />;
-  }
-
-  async function handleBegin() {
-    await beginSimulation();
-    navigate('/simulation');
   }
 
   if (loading && !portfolio) {
@@ -61,22 +62,16 @@ export function DashboardPage() {
           <p className="eyebrow">Dashboard</p>
           <h1 className="page-title">Your book at the open</h1>
           <p className="page-lede">
-            Next simulation day:{' '}
+            Waiting for the admin to open the market
+            {session ? ` (last status ${session.status})` : ''}. Queue pre-simulation
+            orders against any listed NSE name. Next candidate date:{' '}
             <strong>
               {formatDate(nextSimulationDate ?? marketDate ?? '2008-01-01')}
             </strong>
-            . Empty books start on 1 Jan 2008; otherwise the session opens on the
-            trading day after your latest buy. Queue orders, then begin.
+            .
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn--accent"
-          disabled={loading}
-          onClick={() => void handleBegin()}
-        >
-          Begin simulation
-        </button>
+        <span className="muted">Trader cannot begin/end the simulation</span>
       </header>
 
       <div className="dashboard-actions">
@@ -91,13 +86,13 @@ export function DashboardPage() {
             <span>Add cash</span>
             <input
               type="number"
-              min={1000}
+              min={1}
               step={1000}
               value={depositAmount}
               onChange={(e) => setDepositAmount(Number(e.target.value))}
             />
           </label>
-          <button type="submit" className="btn btn--ghost" disabled={loading}>
+          <button type="submit" className="btn btn--accent" disabled={loading}>
             Deposit {formatINR(depositAmount)}
           </button>
         </form>
@@ -106,7 +101,7 @@ export function DashboardPage() {
           className="btn btn--ghost"
           disabled={loading}
           onClick={() => {
-            if (window.confirm('Reset account, portfolio, ledger and sim date?')) {
+            if (window.confirm('Reset your local account to ₹0?')) {
               void resetAccount();
             }
           }}

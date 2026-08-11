@@ -1,7 +1,6 @@
 import type { Holding, Stock } from '../../types';
 import { getStockBySymbol } from '../../data/mockMarket';
 import { formatINR, formatPct } from '../../utils/format';
-import { MAX_PORTFOLIO_HOLDINGS } from '../../types';
 import { nonZeroHoldings } from '../../utils/portfolio';
 
 interface Props {
@@ -19,7 +18,7 @@ export function HoldingsTable({ holdings, quotes }: Props) {
         <div>
           <h2 className="panel__title">Holdings</h2>
           <p className="panel__subtitle">
-            {active.length} of {MAX_PORTFOLIO_HOLDINGS} stock slots used · NSE only
+            {active.length} holdings · NSE catalog
           </p>
         </div>
       </div>

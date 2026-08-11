@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import type { OrderSide, Stock } from '../../types';
 import { NIFTY50_POOL } from '../../data/mockMarket';
 import { formatINR } from '../../utils/format';
-import { canAddHolding, unitsHeld } from '../../utils/portfolio';
+import { unitsHeld } from '../../utils/portfolio';
 import type { Holding } from '../../types';
 
 interface Props {
@@ -48,11 +48,6 @@ export function OrderForm({
 
     if (!symbol || units < 1) {
       setLocalError('Choose a symbol and enter at least 1 unit.');
-      return;
-    }
-
-    if (side === 'BUY' && !canAddHolding(holdings, symbol)) {
-      setLocalError('You already hold 3 stocks. Sell one before buying another.');
       return;
     }
 
