@@ -44,3 +44,15 @@ Desktop.ini
 # Test / coverage
 coverage/
 .nyc_output/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
+**/.pytest_cache/
+**/.mypy_cache/
+*.egg-info/
+simulation-agent/.env
+
+# Market CSVs: tracked rules live in DATA/.gitignore (keeps MOCK_STOCK1 only)
