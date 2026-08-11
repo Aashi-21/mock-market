@@ -6,49 +6,62 @@ Stack: **React 18**, **TypeScript**, **Vite**, **PNPM**, **React Router**.
 
 | Path | Access | Screen |
 | --- | --- | --- |
-| `/login` | Public | Mock login |
-| `/dashboard` | Authenticated | Home / pre-simulation |
-| `/simulation` | Authenticated + phase `RUNNING` | Live mock trading |
+| `/login` | Public | Trader signup / sign-in |
+| `/dashboard` | Trader token | Pre-simulation home |
+| `/simulation` | Trader token | Live board when global session is TRADING/ANALYSIS |
+| `/admin/login` | Public | Admin sign-in (`rootadmin`) |
+| `/admin` | Admin token (localStorage) | Market control console |
 | `/` | Redirect | → `/dashboard` |
 
-`ProtectedRoute` gates authenticated trees. `AppShell` wraps the header + main outlet.
+`ProtectedRoute` gates trader trees. Admin routes sit **outside** `AuthProvider` and use `authService` admin helpers. `AppShell` wraps trader header + outlet.
 
 ## State
 
-### `AuthContext`
+### `AuthContext` (traders)
 
-- Stores mock JWT session in `localStorage` key `mock-market.auth`.
-- Exposes `login`, `logout`, `user`, `isAuthenticated`.
+- Session in `localStorage` (`mock-market.auth`).
+- Exposes `login`, `signup`, `logout`, `user`, `isAuthenticated`.
+- Tokens are opaque `user-token.*` strings from the backend.
+
+### Admin session
+
+- Stored separately (`mock-market.admin` via `authService`).
+- Uses `admin-token.*`; rejected on trader market/order routes.
 
 ### `AppDataContext`
 
-Owns portfolio, orders, market date, simulation board, and phase:
+Owns portfolio, orders, catalog, and the **global** simulation session (long-polled):
 
-- `PRE_SIMULATION` — dashboard mode; orders queue until start
-- `RUNNING` — simulation mode; buys/sells fill immediately (mock)
+- Dashboard while session is idle / absent
+- Auto-navigate to `/simulation` when status is `TRADING` or `ANALYSIS`
+- Traders do **not** call begin/continue/end — those return 403
 
 Important methods:
 
 - `placeOrder` / `cancelOrder`
-- `beginSimulation` — fills pending pre-orders, builds 10-stock board, sets phase
-- `endSimulation` — returns to pre-simulation without clearing portfolio
+- Deposit / reset (trader self-reset)
+- Long-poll `/simulation/session`
 
 ## UI composition
 
 ```
 App
- └─ AuthProvider
-     └─ AppDataProvider
-         └─ Routes
-             ├─ LoginPage
-             └─ ProtectedRoute → AppShell
-                   ├─ DashboardPage
-                   └─ SimulationPage
+ └─ Routes
+     ├─ /admin/login → AdminLoginPage
+     ├─ /admin → AdminPage
+     └─ * → AuthProvider → AppDataProvider
+           └─ Routes
+               ├─ LoginPage
+               └─ ProtectedRoute → AppShell
+                     ├─ DashboardPage
+                     └─ SimulationPage
 ```
+
+Admin layout uses `.admin-grid` (not `.dashboard-grid`) so clock / accounts panels get explicit column spans.
 
 ## Styling
 
-Global CSS in `src/index.css` with design tokens (`--ink`, `--accent`, fonts). No CSS framework. Motion is limited to intentional entrance / chart / brand animations.
+Global CSS in `src/index.css` with design tokens (`--ink`, `--accent`, fonts). No CSS framework.
 
 ## Config
 
@@ -57,4 +70,4 @@ Global CSS in `src/index.css` with design tokens (`--ink`, `--accent`, fonts). N
 - `VITE_API_BASE_URL`
 - `VITE_BACKEND_API_KEY`
 - `VITE_STOCK_DATA_API_KEY`
-- `useMocks: true` (flip when real APIs arrive)
+- `useMocks` (keep `false` when talking to `backend-app`)

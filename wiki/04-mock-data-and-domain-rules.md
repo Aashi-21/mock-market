@@ -1,49 +1,50 @@
-# Mock data & domain rules
+# Domain rules & market data
 
-Until the backend ships, all market and portfolio behaviour is local.
+Authoritative behaviour lives in `backend-app` + `DATA/`. The UI no longer drives fills from local mock files.
 
-## Mock credentials
+## Auth & cash
 
-| Field | Value |
-| --- | --- |
-| Email | `trader@mockmarket.in` |
-| Password | `demo1234` |
-| Display name | Aarav Mehta |
-| Starting cash | ₹2,50,000 |
+| Role | How | Starting cash |
+| --- | --- | --- |
+| Trader | Signup/login at `/login` (username + password) | ₹0 |
+| Admin | `/admin/login` — `rootadmin` / `admin123` (env override) | N/A (cannot trade) |
 
-Defined in `web-app-ui/src/data/mockUser.ts`.
+Credentials and books: `backend-app/local-db/` (gitignored). Details: [10-local-auth-and-admin.md](./10-local-auth-and-admin.md).
 
 ## Market date
 
-`LATEST_MARKET_DATE` in `mockMarket.ts` is currently **2024-12-27**.
+Simulation dates come from historical CSVs, not `new Date()` on the client.
 
-This value is shown as “Market date” and is the default simulation start point. It must **not** be confused with `new Date()` on the client.
+- Empty books → first day **2008-01-01** (or next available trading day with data)
+- After buys → next trading day after `latestBuyDate`
 
 ## Stock universe
 
-`NIFTY50_POOL` holds a curated subset of Nifty 50 names. The simulation board is built by `buildSimulationUniverse(holdings)`:
-
-1. Add every non-zero holding’s symbol (must exist in the pool).
-2. Fill remaining slots from the pool until **10** stocks.
-3. Return that list for the simulation table and order picker.
+- Catalog: `DATA/stock_metadata.csv` (symbol, name, industry, series, ISIN, …)
+- Daily bars: `DATA/{SYMBOL}.csv` (and naming variants such as `M&M` → `MM.csv`)
+- Board / order picker: **all catalog stocks with a resolvable CSV** — no 10-name cap
+- Aggregate files like `NIFTY50_all.csv` are ignored
 
 ## Portfolio rules
 
-- Max **3** symbols with `units > 0` (`MAX_PORTFOLIO_HOLDINGS`).
-- Buying a 4th distinct name is rejected.
-- Selling down to zero frees a slot.
-- Pre-simulation orders stay `PENDING` until `beginSimulation`.
-- Live simulation orders fill at last traded price and update cash/holdings immediately.
+- No max holdings count
+- Pre-simulation orders stay `PENDING` until the admin begins a session; they fill at that day’s **open**
+- Live orders require `session.status === "TRADING"` and fill at the current quote
+- Insufficient cash / units → reject
 
 ## Order statuses
 
 `PENDING` · `FILLED` · `CANCELLED` · `REJECTED`
 
-## Replacing mocks
+## Simulation clock (admin)
 
-When APIs arrive:
+| Control | Default / notes |
+| --- | --- |
+| Seconds per market minute | `5` (admin console; stored in `local-db/global/config.json`) |
+| `SIMULATION_TIME_SCALE` | Optional env divisor on day/tick/analysis durations |
+| Max days per session | 10 cycles |
+| Who may start/continue/stop | Admin only; trader routes return **403** |
 
-1. Keep types in `src/types` as the contract surface.
-2. Replace bodies in `src/services/*` with `fetch`/`axios` using `config.apiBaseUrl` + API keys.
-3. Leave components/pages untouched where possible.
-4. Set `config.useMocks = false`.
+## Legacy frontend mocks
+
+Older files under `web-app-ui/src/data/` (e.g. hard-coded demo user) are not the live path when `VITE_USE_MOCKS=false`. Prefer backend + `local-db`.

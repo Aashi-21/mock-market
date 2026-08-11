@@ -55,4 +55,7 @@ coverage/
 *.egg-info/
 simulation-agent/.env
 
-# Market CSVs: tracked rules live in DATA/.gitignore (keeps MOCK_STOCK1 only)
+# Local cleartext DB (users, portfolios, global sim) — never commit
+backend-app/local-db/
+**/local-db/
+

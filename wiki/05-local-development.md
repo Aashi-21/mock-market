@@ -34,11 +34,14 @@ Useful env:
 
 | Variable | Meaning |
 | --- | --- |
-| `SIMULATION_TIME_SCALE` | Divides day/tick/analysis durations (`60` ≈ 31s/day) |
+| `SIMULATION_TIME_SCALE` | Divides day/tick/analysis durations |
 | `SIMULATION_AGENT_URL` | Python agent base URL (default `http://localhost:8090`) |
 | `SIMULATION_AGENT_API_KEY` | Optional shared secret for agent calls |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Admin console credentials (defaults `rootadmin` / `admin123`) |
 | `STOCK_DATA_API_KEY` | Reserved for future OHLC provider |
 | `FIREBASE_*` | Reserved for Auth/RTDB |
+
+Trader data is written under `backend-app/local-db/` (gitignored). Delete that folder to wipe local users/sessions.
 
 ## Frontend
 
@@ -56,15 +59,12 @@ VITE_API_BASE_URL=http://localhost:8080/api
 VITE_USE_MOCKS=false
 ```
 
-## Mock login
-
-- Email: `trader@mockmarket.in`
-- Password: `demo1234`
-
 ## Suggested flow
 
 1. Start `simulation-agent`
 2. Start `backend-app`
 3. Start `web-app-ui`
-4. Sign in → deposit/reset as needed → queue pre-orders → begin simulation
-5. Watch quotes update via long-poll → trade → analysis → continue/stop
+4. Open `/admin/login` → set seconds/minute → **Begin simulation**
+5. In another browser profile (or after admin sign-out), `/login` → signup → deposit → queue pre-orders
+6. Trader is pulled into `/simulation` while the global session is TRADING/ANALYSIS
+7. Admin continues or ends; optionally reset one/all accounts

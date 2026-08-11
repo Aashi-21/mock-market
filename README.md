@@ -35,9 +35,9 @@ pnpm install
 pnpm dev
 ```
 
-- Agent: http://localhost:8090/health  
+- Login / signup: http://localhost:5173/login  
+- Admin: http://localhost:5173/admin/login (`rootadmin` / `admin123`)  
 - API: http://localhost:8080/api  
-- UI: http://localhost:5173  
-- Login: `trader@mockmarket.in` / `demo1234`
+- Agent: http://localhost:8090/health  
 
-See [wiki/05-local-development.md](./wiki/05-local-development.md), [wiki/08-backend-app.md](./wiki/08-backend-app.md), and [wiki/09-simulation-agent.md](./wiki/09-simulation-agent.md).
+Local trader data lives in `backend-app/local-db/` (gitignored). See [wiki/10-local-auth-and-admin.md](./wiki/10-local-auth-and-admin.md).

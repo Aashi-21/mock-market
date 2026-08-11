@@ -1,30 +1,32 @@
 # Roadmap stubs
 
-Planned follow-ups once backend and market data services exist.
+Planned follow-ups. Several earlier “mock → backend” items are already in place via `backend-app` + `local-db`.
 
-## Backend API
+## Done locally (demo-grade)
 
-- Replace mock services with REST/GraphQL clients.
-- Persist portfolio, orders, and simulation sessions per user.
-- Server-authoritative fill logic and cash checks.
+- Server-authoritative orders, cash checks, and fills
+- Per-user persistence (CSV under `local-db/`)
+- Global simulation session with admin start/continue/stop
+- Catalog-driven board from `DATA/stock_metadata.csv` + daily CSVs
+- Intraday paths from `simulation-agent`
+
+## Backend / identity (still open)
+
+- Replace cleartext local auth with IDAM (OIDC / enterprise SSO) or hashed passwords
+- Optional Firebase Auth / RTDB cutover (`src/stubs/firebase*.ts`)
+- Hardened multi-instance session store (beyond single-process memory + JSON)
 
 ## Stock market data
 
-- Ingest historical NSE OHLCV for Nifty 50 (and later broader NSE).
-- Drive simulation clock day-by-day from the dataset.
-- Ensure portfolio symbols always resolve in the active universe.
-
-## Identity
-
-- Replace mock login with IDAM (OIDC / enterprise SSO).
-- Remove hardcoded credentials from `mockUser.ts`.
-- Map IDAM subject → trading account.
+- Broader committed fixtures beyond `MOCK_STOCK1` (most `DATA/*.csv` stay gitignored)
+- Vendor historical OHLC provider instead of / in addition to local CSVs
+- Ensure every traded symbol always resolves for the active date
 
 ## Product enhancements (not started)
 
-- Multi-day step / play-pause controls for the simulation clock
-- Order types beyond market-at-LTP (limit, stop)
+- Order types beyond market-at-quote (limit, stop)
 - Performance analytics beyond the simple growth chart
-- Watchlists independent of the 10-name board
+- Watchlists independent of the live board
+- Stronger admin RBAC if more operator roles appear
 
 When any item above lands, update this file and the architecture docs in the same PR.
