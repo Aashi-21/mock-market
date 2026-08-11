@@ -1,0 +1,564 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Mock Market Simulation Agent",
+    "version": "0.1.0",
+    "description": "Seeded NSE intraday simulator from daily OHLC with hard OHLC and soft VWAP constraints."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8090",
+      "description": "Local default"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Liveness probe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/simulate/day": {
+      "post": {
+        "operationId": "simulateDay",
+        "summary": "Simulate a full NSE day as 375 minute bars",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateDayRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Simulated day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulateDayResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "CSV / date not found"
+          },
+          "422": {
+            "description": "Invalid day bar"
+          }
+        }
+      }
+    },
+    "/v1/sessions/{session_id}/minute/{minute_index}": {
+      "get": {
+        "operationId": "getMinute",
+        "summary": "Fetch a minute bar (and next) from a persisted session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "minute_index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 374
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Minute bar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MinuteQueryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown session"
+          }
+        }
+      }
+    },
+    "/v1/trade-impact/preview": {
+      "post": {
+        "operationId": "tradeImpactPreview",
+        "summary": "Estimate temporary price delta for a hypothetical trade",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeImpactPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeImpactPreviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DayBarIn": {
+        "type": "object",
+        "required": [
+          "previous_close",
+          "open",
+          "high",
+          "low",
+          "close",
+          "vwap"
+        ],
+        "properties": {
+          "previous_close": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "open": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "high": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "low": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "last": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Ignored when inconsistent with simulated path"
+          },
+          "close": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "vwap": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "volume": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "turnover": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "trades": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "deliverable_volume": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "deliverable_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      },
+      "TradeImpactIn": {
+        "type": "object",
+        "required": [
+          "minute_index",
+          "side",
+          "units"
+        ],
+        "properties": {
+          "minute_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 374
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "aggressiveness": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1
+          }
+        }
+      },
+      "SimulateDayRequest": {
+        "type": "object",
+        "required": [
+          "stock_id",
+          "date"
+        ],
+        "properties": {
+          "stock_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "seed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "day_bar": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DayBarIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "trade_impacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TradeImpactIn"
+            },
+            "default": []
+          },
+          "total_day_volume": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "exclusiveMinimum": 0
+          },
+          "persist_session": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "MinuteBarOut": {
+        "type": "object",
+        "required": [
+          "minute_index",
+          "time",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume"
+        ],
+        "properties": {
+          "minute_index": {
+            "type": "integer"
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$"
+          },
+          "open": {
+            "type": "number"
+          },
+          "high": {
+            "type": "number"
+          },
+          "low": {
+            "type": "number"
+          },
+          "close": {
+            "type": "number"
+          },
+          "volume": {
+            "type": "number"
+          }
+        }
+      },
+      "SimulateDayResponse": {
+        "type": "object",
+        "required": [
+          "stock_id",
+          "date",
+          "seed",
+          "minutes",
+          "day",
+          "target_vwap",
+          "realized_vwap",
+          "closes",
+          "minute_bars"
+        ],
+        "properties": {
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stock_id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer"
+          },
+          "exchange": {
+            "type": "string",
+            "const": "NSE"
+          },
+          "currency": {
+            "type": "string",
+            "const": "INR"
+          },
+          "minutes": {
+            "type": "integer",
+            "const": 375
+          },
+          "day": {
+            "$ref": "#/components/schemas/DayBarIn"
+          },
+          "target_vwap": {
+            "type": "number"
+          },
+          "realized_vwap": {
+            "type": "number"
+          },
+          "closes": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 375,
+            "maxItems": 375
+          },
+          "minute_bars": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MinuteBarOut"
+            }
+          },
+          "model": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "MinuteQueryResponse": {
+        "type": "object",
+        "required": [
+          "session_id",
+          "stock_id",
+          "date",
+          "minute_index",
+          "bar"
+        ],
+        "properties": {
+          "session_id": {
+            "type": "string"
+          },
+          "stock_id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string"
+          },
+          "minute_index": {
+            "type": "integer"
+          },
+          "bar": {
+            "$ref": "#/components/schemas/MinuteBarOut"
+          },
+          "next_bar": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MinuteBarOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "TradeImpactPreviewRequest": {
+        "type": "object",
+        "required": [
+          "last_price",
+          "side",
+          "units",
+          "avg_minute_volume"
+        ],
+        "properties": {
+          "last_price": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "BUY",
+              "SELL"
+            ]
+          },
+          "units": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "avg_minute_volume": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "aggressiveness": {
+            "type": "number",
+            "minimum": 0,
+            "default": 1
+          }
+        }
+      },
+      "TradeImpactPreviewResponse": {
+        "type": "object",
+        "required": [
+          "estimated_price_delta"
+        ],
+        "properties": {
+          "estimated_price_delta": {
+            "type": "number"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "data_dir",
+          "minutes_per_day"
+        ],
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "data_dir": {
+            "type": "string"
+          },
+          "minutes_per_day": {
+            "type": "integer",
+            "const": 375
+          }
+        }
+      }
+    }
+  },
+  "x-mock-market": {
+    "package": "simulation-agent",
+    "constraints": {
+      "ohlc": "hard",
+      "vwap": "soft",
+      "last_price_mismatch": "ignore"
+    },
+    "model_components": [
+      "empirical_priors",
+      "stochastic_volatility",
+      "hawkes_jumps",
+      "piecewise_brownian_bridge",
+      "soft_vwap",
+      "volume_trades_deliverable",
+      "trade_impact_hook"
+    ],
+    "session": {
+      "exchange": "NSE",
+      "currency": "INR",
+      "open": "09:15",
+      "close": "15:30",
+      "minutes": 375
+    },
+    "data_glob": "DATA/{STOCK_ID}.csv",
+    "committed_fixture": "DATA/MOCK_STOCK1.csv"
+  }
+}

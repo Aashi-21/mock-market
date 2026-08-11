@@ -1,0 +1,122 @@
+{
+  "schema": "mock-market.simulation-agent.data.csv/v1",
+  "description": "Daily NSE bar file consumed by simulation-agent",
+  "path_pattern": "DATA/{SYMBOL}.csv",
+  "filename_rule": "Resolved via stock_metadata.csv Symbol + common variants (strip &, -)",
+  "filename_rule_notes": "Catalog is DATA/stock_metadata.csv. NIFTY50_all.csv is not a stock file. Series=MOCK marks mock names.",
+  "catalog": "DATA/stock_metadata.csv",
+  "symbol_rule": "Filename stem / resolved path wins over Symbol column when they differ",
+  "encoding": "utf-8",
+  "header": true,
+  "columns": [
+    {
+      "name": "Date",
+      "type": "string",
+      "format": "YYYY-MM-DD",
+      "required": true
+    },
+    {
+      "name": "Symbol",
+      "type": "string",
+      "required": false,
+      "notes": "Overridden by filename stem"
+    },
+    {
+      "name": "Type",
+      "type": "string",
+      "required": false,
+      "notes": "Ignored"
+    },
+    {
+      "name": "PreviousClose",
+      "type": "number",
+      "required": true,
+      "unit": "INR"
+    },
+    {
+      "name": "Open",
+      "type": "number",
+      "required": true,
+      "unit": "INR"
+    },
+    {
+      "name": "High",
+      "type": "number",
+      "required": true,
+      "unit": "INR"
+    },
+    {
+      "name": "Low",
+      "type": "number",
+      "required": true,
+      "unit": "INR"
+    },
+    {
+      "name": "Last",
+      "type": "number",
+      "required": true,
+      "unit": "INR",
+      "notes": "Day LTP; not hard-forced onto simulated path"
+    },
+    {
+      "name": "Close",
+      "type": "number",
+      "required": true,
+      "unit": "INR"
+    },
+    {
+      "name": "VWAP",
+      "type": "number",
+      "required": true,
+      "unit": "INR",
+      "notes": "Soft target only"
+    },
+    {
+      "name": "Volume",
+      "type": "number",
+      "required": false,
+      "notes": "Scales minute volume path"
+    },
+    {
+      "name": "Turnover",
+      "type": "number",
+      "required": false,
+      "notes": "Optional; Volume inferred as Turnover/(VWAP*1e5) when Volume missing"
+    },
+    {
+      "name": "Trades",
+      "type": "number",
+      "required": false,
+      "notes": "Calibrates Hawkes mu/alpha; empty cells allowed"
+    },
+    {
+      "name": "Deliverable Volume",
+      "type": "number",
+      "required": false
+    },
+    {
+      "name": "%Deliverble",
+      "type": "number",
+      "required": false,
+      "notes": "0–1 fraction (0–100 normalized). Aliases: %Deliverable, DeliverablePct"
+    }
+  ],
+  "aliases": {
+    "PreviousClose": ["Prev Close", "PrevClose", "PreviousClose"],
+    "Type": ["Series", "Type"]
+  },
+  "invariants": [
+    "High >= max(Open, Close, Low)",
+    "Low <= min(Open, Close, High)"
+  ],
+  "gitignore": {
+    "tracked": [
+      "DATA/.gitignore",
+      "DATA/MOCK_STOCK1.csv",
+      "DATA/stock_metadata.csv"
+    ],
+    "ignored": [
+      "DATA/*"
+    ]
+  }
+}

@@ -19,7 +19,9 @@ Local `.env` sets `SIMULATION_TIME_SCALE=60` so a market day lasts ~31s instead 
 | Method | Path | Auth | Purpose |
 | --- | --- | --- | --- |
 | POST | `/auth/login` | No | Firebase-auth stub login |
-| GET | `/user/bootstrap` | Bearer | User, portfolio, orders, ledger, session |
+| GET | `/user/bootstrap` | Bearer | User, portfolio, orders, ledger, session, **stock catalog** |
+| GET | `/stocks` | Bearer | Listing from `DATA/stock_metadata.csv` |
+| GET | `/market/candles/:symbol?date=` | Bearer | Minute candles via simulation-agent |
 | POST | `/user/reset` | Bearer | Empty portfolio/ledger; sim date → 2008-01-01 |
 | POST | `/wallet/deposit` | Bearer | Add cash `{ amount }` |
 | POST | `/orders` | Bearer | Place order (`PRE_SIMULATION` \| `LIVE`) |
@@ -55,10 +57,21 @@ Local `.env` sets `SIMULATION_TIME_SCALE=60` so a market day lasts ~31s instead 
    - 5m analysis after the close
    - Max **10** days per session
 4. **Prices**
-   - Open/close from stock API stub (`src/stubs/stockPriceApi.ts`)
-   - Intraday path = Brownian-bridge style walk open → close (`src/utils/pricePath.ts`)
+   - Open/high/low/close/VWAP from stock API stub (`src/stubs/stockPriceApi.ts`)
+   - Intraday path from **simulation-agent** (`SIMULATION_AGENT_URL`, default `http://localhost:8090`)
+   - Client: `src/services/simulationAgentClient.ts` (TS Brownian path removed)
 5. **Live trades** fill at the quote shown to the client at request time.
 6. **Analysis** — user may continue or stop; no live orders.
+
+## Required sidecar
+
+Start the Python agent before running a simulation day:
+
+```bash
+cd simulation-agent && source .venv/bin/activate && uvicorn app.main:app --port 8090
+```
+
+See [09-simulation-agent.md](./09-simulation-agent.md).
 
 ## Stubs to replace later
 
