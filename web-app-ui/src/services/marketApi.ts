@@ -1,4 +1,5 @@
 import type {
+  CatalogStock,
   LedgerEntry,
   Order,
   OrderKind,
@@ -18,6 +19,26 @@ export interface BootstrapResponse {
   latestBuyDate: string | null;
   nextSimulationDate: string;
   session: SimulationSession | null;
+  stocks?: CatalogStock[];
+  industries?: string[];
+  seriesTypes?: string[];
+}
+
+export interface CandleBar {
+  minute_index: number;
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface CandlesResponse {
+  symbol: string;
+  date: string;
+  candles: CandleBar[];
+  sessionId: string | null;
 }
 
 function auth() {
@@ -37,6 +58,28 @@ function normalizeOrders(orders: Order[]): Order[] {
 export async function fetchBootstrap(): Promise<BootstrapResponse> {
   const data = await apiFetch<BootstrapResponse>('/user/bootstrap', { token: auth() });
   return { ...data, orders: normalizeOrders(data.orders) };
+}
+
+export async function fetchStockCatalog(params?: {
+  series?: string;
+  industry?: string;
+}): Promise<{ stocks: CatalogStock[]; industries: string[]; seriesTypes: string[] }> {
+  const q = new URLSearchParams();
+  if (params?.series) q.set('series', params.series);
+  if (params?.industry) q.set('industry', params.industry);
+  const suffix = q.toString() ? `?${q}` : '';
+  return apiFetch(`/stocks${suffix}`, { token: auth() });
+}
+
+export async function fetchCandles(
+  symbol: string,
+  date: string,
+  opts?: { upToMinute?: number; seed?: number },
+): Promise<CandlesResponse> {
+  const q = new URLSearchParams({ date });
+  if (opts?.upToMinute != null) q.set('upToMinute', String(opts.upToMinute));
+  if (opts?.seed != null) q.set('seed', String(opts.seed));
+  return apiFetch(`/market/candles/${encodeURIComponent(symbol)}?${q}`, { token: auth() });
 }
 
 export async function placeOrder(input: {

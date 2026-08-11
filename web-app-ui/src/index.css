@@ -583,7 +583,12 @@ p {
 }
 
 .simulation-grid > :first-child {
-  grid-column: span 8;
+  grid-column: span 7;
+}
+
+.simulation-grid > .candle-panel {
+  grid-column: span 5;
+  animation: rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .simulation-grid > .order-panel {
@@ -591,12 +596,72 @@ p {
 }
 
 .simulation-grid > .growth-panel {
+  grid-column: span 8;
+}
+
+.simulation-grid > :nth-child(5),
+.simulation-grid > :nth-child(6) {
   grid-column: span 6;
 }
 
-.simulation-grid > :nth-child(4),
-.simulation-grid > :nth-child(5) {
-  grid-column: span 6;
+.data-table--selectable tbody tr {
+  cursor: pointer;
+}
+
+.data-table--selectable tbody tr:hover {
+  background: var(--soft-fill);
+}
+
+.data-table--selectable tbody tr.is-selected {
+  outline: 1px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.candle-chart-wrap {
+  overflow-x: auto;
+}
+
+.candle-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  min-height: 240px;
+}
+
+.candle-grid {
+  stroke: var(--grid-line);
+  stroke-width: 1;
+}
+
+.candle-axis {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
+
+.candle-wick {
+  stroke-width: 1.25;
+}
+
+.candle.is-up .candle-wick,
+.candle.is-up .candle-body {
+  stroke: var(--up);
+  fill: var(--up);
+}
+
+.candle.is-down .candle-wick,
+.candle.is-down .candle-body {
+  stroke: var(--down);
+  fill: var(--down);
+}
+
+.candle-name {
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.candle-empty {
+  padding: 2rem 0.5rem;
 }
 
 .panel {
@@ -881,10 +946,11 @@ p {
   .dashboard-grid > :nth-child(3),
   .dashboard-grid > :nth-child(4),
   .simulation-grid > :first-child,
+  .simulation-grid > .candle-panel,
   .simulation-grid > .order-panel,
   .simulation-grid > .growth-panel,
-  .simulation-grid > :nth-child(4),
-  .simulation-grid > :nth-child(5) {
+  .simulation-grid > :nth-child(5),
+  .simulation-grid > :nth-child(6) {
     grid-column: 1 / -1;
   }
 

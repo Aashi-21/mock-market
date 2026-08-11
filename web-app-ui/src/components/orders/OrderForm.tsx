@@ -39,7 +39,8 @@ export function OrderForm({
   );
 
   const held = unitsHeld(holdings, symbol);
-  const estimated = selected ? selected.lastPrice * units : 0;
+  const estimated = selected && selected.lastPrice > 0 ? selected.lastPrice * units : 0;
+
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();

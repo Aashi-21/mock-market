@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAppData } from '../context/AppDataContext';
 import { PortfolioGrowth } from '../components/portfolio/PortfolioGrowth';
@@ -5,7 +6,9 @@ import { HoldingsTable } from '../components/portfolio/HoldingsTable';
 import { OrderForm } from '../components/orders/OrderForm';
 import { PendingOrders } from '../components/orders/PendingOrders';
 import { MarketTable } from '../components/market/MarketTable';
+import { CandleChart } from '../components/market/CandleChart';
 import { formatDate } from '../utils/format';
+import * as marketApi from '../services/marketApi';
 
 export function SimulationPage() {
   const {
@@ -22,6 +25,35 @@ export function SimulationPage() {
     continueSimulation,
   } = useAppData();
   const navigate = useNavigate();
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [candles, setCandles] = useState<marketApi.CandleBar[]>([]);
+  const [candlesLoading, setCandlesLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedSymbol && simulationStocks[0]) {
+      setSelectedSymbol(simulationStocks[0].symbol);
+    }
+  }, [simulationStocks, selectedSymbol]);
+
+  useEffect(() => {
+    if (!selectedSymbol || !marketDate || !session) return;
+    let cancelled = false;
+    setCandlesLoading(true);
+    void marketApi
+      .fetchCandles(selectedSymbol, marketDate)
+      .then((res) => {
+        if (!cancelled) setCandles(res.candles);
+      })
+      .catch(() => {
+        if (!cancelled) setCandles([]);
+      })
+      .finally(() => {
+        if (!cancelled) setCandlesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedSymbol, marketDate, session?.id, session?.cycle]);
 
   if (phase !== 'TRADING' && phase !== 'ANALYSIS') {
     return <Navigate to="/dashboard" replace />;
@@ -44,6 +76,8 @@ export function SimulationPage() {
   const analysisRemainingMs = session.analysisEndsAt
     ? Math.max(0, Date.parse(session.analysisEndsAt) - Date.now())
     : 0;
+
+  const selected = simulationStocks.find((s) => s.symbol === selectedSymbol);
 
   return (
     <div className="page simulation-page">
@@ -105,7 +139,20 @@ export function SimulationPage() {
       </div>
 
       <div className="simulation-grid">
-        <MarketTable stocks={simulationStocks} holdings={portfolio.holdings} />
+        <MarketTable
+          stocks={simulationStocks}
+          holdings={portfolio.holdings}
+          selectedSymbol={selectedSymbol}
+          onSelectSymbol={setSelectedSymbol}
+        />
+        <CandleChart
+          symbol={selectedSymbol ?? '—'}
+          name={selected?.name}
+          date={marketDate ?? session.currentMarketDate}
+          candles={candles}
+          loading={candlesLoading}
+          progressIndex={phase === 'TRADING' ? session.tickIndex : undefined}
+        />
         {phase === 'TRADING' && (
           <OrderForm
             holdings={portfolio.holdings}

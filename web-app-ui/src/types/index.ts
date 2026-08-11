@@ -31,6 +31,17 @@ export interface Stock {
   dayChangePct: number;
   open?: number;
   close?: number;
+  series?: string;
+}
+
+export interface CatalogStock {
+  symbol: string;
+  name: string;
+  industry: string;
+  series: string;
+  isin: string;
+  exchange: 'NSE';
+  hasCsv: boolean;
 }
 
 export interface Holding {

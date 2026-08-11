@@ -14,6 +14,7 @@ export function DashboardPage() {
     marketDate,
     nextSimulationDate,
     loading,
+    catalogStocks,
     placeOrder,
     cancelOrder,
     beginSimulation,
@@ -24,6 +25,17 @@ export function DashboardPage() {
   } = useAppData();
   const navigate = useNavigate();
   const [depositAmount, setDepositAmount] = useState(50_000);
+
+  const orderUniverse = catalogStocks.map((s) => ({
+    symbol: s.symbol,
+    name: s.name,
+    exchange: 'NSE' as const,
+    sector: s.industry,
+    lastPrice: 0,
+    previousClose: 0,
+    dayChangePct: 0,
+    series: s.series,
+  }));
 
   if (phase === 'TRADING' || phase === 'ANALYSIS') {
     return <Navigate to="/simulation" replace />;
@@ -108,6 +120,7 @@ export function DashboardPage() {
         <OrderForm
           holdings={portfolio.holdings}
           cashBalance={portfolio.cashBalance}
+          availableStocks={orderUniverse.length > 0 ? orderUniverse : undefined}
           isPreSimulation
           onSubmit={placeOrder}
         />

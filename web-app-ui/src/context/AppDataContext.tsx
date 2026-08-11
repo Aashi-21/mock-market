@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import type {
+  CatalogStock,
   LedgerEntry,
   Order,
   OrderSide,
@@ -28,6 +29,7 @@ interface AppDataContextValue {
   marketDate: string | null;
   nextSimulationDate: string | null;
   simulationStocks: Stock[];
+  catalogStocks: CatalogStock[];
   session: SimulationSession | null;
   phase: SimulationPhase;
   loading: boolean;
@@ -69,6 +71,7 @@ function applyBootstrap(
     setNextSimulationDate: (d: string | null) => void;
     setSession: (s: SimulationSession | null) => void;
     setSimulationStocks: (s: Stock[]) => void;
+    setCatalogStocks: (s: CatalogStock[]) => void;
   },
 ) {
   setters.setPortfolio(data.portfolio);
@@ -76,6 +79,7 @@ function applyBootstrap(
   setters.setLedger(data.ledger);
   setters.setNextSimulationDate(data.nextSimulationDate);
   setters.setSession(data.session);
+  if (data.stocks) setters.setCatalogStocks(data.stocks);
   if (data.session) {
     setters.setMarketDate(data.session.currentMarketDate);
     setters.setSimulationStocks(data.session.quotes);
@@ -93,6 +97,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [marketDate, setMarketDate] = useState<string | null>(null);
   const [nextSimulationDate, setNextSimulationDate] = useState<string | null>(null);
   const [simulationStocks, setSimulationStocks] = useState<Stock[]>([]);
+  const [catalogStocks, setCatalogStocks] = useState<CatalogStock[]>([]);
   const [session, setSession] = useState<SimulationSession | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +113,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setNextSimulationDate,
       setSession,
       setSimulationStocks,
+      setCatalogStocks,
     }),
     [],
   );
@@ -136,6 +142,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setMarketDate(null);
       setNextSimulationDate(null);
       setSimulationStocks([]);
+      setCatalogStocks([]);
       setSession(null);
     }
   }, [isAuthenticated, token, refresh]);
@@ -325,6 +332,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       marketDate,
       nextSimulationDate,
       simulationStocks,
+      catalogStocks,
       session,
       phase,
       loading,
@@ -347,6 +355,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       marketDate,
       nextSimulationDate,
       simulationStocks,
+      catalogStocks,
       session,
       phase,
       loading,
