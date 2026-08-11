@@ -1,22 +1,51 @@
-import { firebaseSignInWithEmailPassword, firebaseVerifyIdToken } from '../stubs/firebaseAuth.js';
-import { ensureSeedUser, getAccount, persistAccount } from '../store/memoryStore.js';
+import { config } from '../config.js';
+import {
+  authenticateUser,
+  createUserAccount,
+  loadUserAccount,
+} from '../localDb/userStore.js';
+import { getAccount, persistAccount } from '../store/memoryStore.js';
 import type { UserAccount, UserProfile } from '../types/index.js';
 
+function userToken(userId: string): string {
+  return `user-token.${userId}.${Date.now()}`;
+}
+
+function adminToken(): string {
+  return `admin-token.${config.adminUsername}.${Date.now()}`;
+}
+
+export async function signup(
+  username: string,
+  password: string,
+  displayName?: string,
+): Promise<{ token: string; user: UserProfile }> {
+  const account = createUserAccount(username, password, displayName ?? username);
+  return { token: userToken(account.user.id), user: account.user };
+}
+
 export async function login(
-  email: string,
+  username: string,
   password: string,
 ): Promise<{ token: string; user: UserProfile }> {
-  await ensureSeedUser();
-  const auth = await firebaseSignInWithEmailPassword(email, password);
-  const account = await getAccount(auth.uid);
-  // Keep profile fields in sync with auth stub
-  account.user.email = auth.email;
-  account.user.displayName = auth.displayName;
-  await persistAccount(account);
+  const account = authenticateUser(username, password);
+  return { token: userToken(account.user.id), user: account.user };
+}
 
+export async function adminLogin(
+  username: string,
+  password: string,
+): Promise<{ token: string; username: string; role: 'admin' }> {
+  if (
+    username.trim() !== config.adminUsername ||
+    password !== config.adminPassword
+  ) {
+    throw Object.assign(new Error('Invalid admin credentials'), { status: 401 });
+  }
   return {
-    token: auth.idToken,
-    user: account.user,
+    token: adminToken(),
+    username: config.adminUsername,
+    role: 'admin',
   };
 }
 
@@ -25,7 +54,33 @@ export async function requireUser(authHeader: string | undefined): Promise<UserA
     throw Object.assign(new Error('Missing Bearer token'), { status: 401 });
   }
   const token = authHeader.slice('Bearer '.length).trim();
-  const { uid } = await firebaseVerifyIdToken(token);
-  await ensureSeedUser();
-  return getAccount(uid);
+  if (token.startsWith('admin-token.')) {
+    throw Object.assign(new Error('Admin token cannot access trader routes'), { status: 403 });
+  }
+  if (!token.startsWith('user-token.')) {
+    throw Object.assign(new Error('Invalid auth token'), { status: 401 });
+  }
+  const userId = token.split('.')[1];
+  if (!userId) throw Object.assign(new Error('Invalid auth token'), { status: 401 });
+  const account = loadUserAccount(userId);
+  if (!account) throw Object.assign(new Error('User account not found'), { status: 404 });
+  return structuredClone(account);
 }
+
+export async function requireAdmin(authHeader: string | undefined): Promise<{ username: string }> {
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw Object.assign(new Error('Missing Bearer token'), { status: 401 });
+  }
+  const token = authHeader.slice('Bearer '.length).trim();
+  if (!token.startsWith('admin-token.')) {
+    throw Object.assign(new Error('Admin authentication required'), { status: 403 });
+  }
+  const username = token.split('.')[1];
+  if (username !== config.adminUsername) {
+    throw Object.assign(new Error('Invalid admin token'), { status: 401 });
+  }
+  return { username };
+}
+
+/** Re-export for callers that still import getAccount via auth */
+export { getAccount, persistAccount };

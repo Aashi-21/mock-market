@@ -92,6 +92,7 @@ export interface LiveQuote {
 
 export interface SimulationSession {
   id: string;
+  /** Always `global` for the admin-controlled market session. */
   userId: string;
   status: SimulationStatus;
   startMarketDate: string;
@@ -105,6 +106,8 @@ export interface SimulationSession {
   tickIndex: number;
   tickCount: number;
   quotes: LiveQuote[];
+  /** Admin-configured: wall seconds per market minute (default 5). */
+  secondsPerMarketMinute: number;
   updatedAt: string;
   version: number;
 }
@@ -122,10 +125,14 @@ export interface UserAccount {
   passwordHash: string;
 }
 
-export const MAX_PORTFOLIO_HOLDINGS = 3;
-export const SIMULATION_MARKET_SIZE = 10;
 export const MAX_SIMULATION_DAYS = 10;
 export const EMPTY_PORTFOLIO_START_DATE = '2008-01-01';
+export const NSE_MINUTES_PER_DAY = 375;
+
+/** @deprecated Limits removed — kept as Infinity for any leftover checks. */
+export const MAX_PORTFOLIO_HOLDINGS = Number.POSITIVE_INFINITY;
+/** @deprecated Board is the full catalog. */
+export const SIMULATION_MARKET_SIZE = Number.POSITIVE_INFINITY;
 
 /** Wall-clock duration of one simulated market day (before time scale). */
 export const MARKET_DAY_MS = (31 *60 * 60 + 15) * 1000;

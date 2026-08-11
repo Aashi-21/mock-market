@@ -17,6 +17,10 @@ export const config = {
   simulationAgentApiKey: process.env.SIMULATION_AGENT_API_KEY ?? '',
   /** Repo-root DATA/ with stock_metadata.csv + OHLC dumps */
   dataDir: process.env.DATA_DIR ?? '',
+  /** Cleartext local DB root (users, portfolios, global sim). Gitignored. */
+  localDbDir: process.env.LOCAL_DB_DIR ?? '',
+  adminUsername: process.env.ADMIN_USERNAME ?? 'rootadmin',
+  adminPassword: process.env.ADMIN_PASSWORD ?? 'admin123',
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID ?? 'mock-market-local',
     authEmulator: (process.env.FIREBASE_AUTH_EMULATOR ?? 'true') === 'true',

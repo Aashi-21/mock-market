@@ -1,10 +1,9 @@
 import { createId } from '../utils/helpers.js';
-import { getAccount, getSessionByUser, persistAccount, upsertOrder } from '../store/memoryStore.js';
+import { getAccount, getGlobalSession, persistAccount, upsertOrder } from '../store/memoryStore.js';
 import type { Order, OrderKind, OrderSide } from '../types/index.js';
 import { validateOrderIntent } from './portfolioMath.js';
-import { executeLiveOrder } from './simulationService.js';
+import { executeLiveOrder, resolveSimulationStartDate } from './simulationService.js';
 import { fetchDayBar, getStockMeta } from '../stubs/stockPriceApi.js';
-import { resolveSimulationStartDate } from './simulationService.js';
 
 export async function placeOrder(
   userId: string,
@@ -22,7 +21,7 @@ export async function placeOrder(
   }
 
   const account = await getAccount(userId);
-  const session = getSessionByUser(userId);
+  const session = getGlobalSession();
 
   if (input.kind === 'LIVE') {
     if (!session || session.status !== 'TRADING') {
@@ -30,7 +29,7 @@ export async function placeOrder(
     }
     const quote = session.quotes.find((q) => q.symbol === symbol);
     if (!quote) {
-      throw Object.assign(new Error('Symbol not on the simulation board'), { status: 400 });
+      throw Object.assign(new Error('Symbol not available in the live market'), { status: 400 });
     }
     validateOrderIntent(account, input.side, symbol, input.units, quote.lastPrice);
 
@@ -60,7 +59,6 @@ export async function placeOrder(
     };
   }
 
-  // PRE_SIMULATION — queue until simulation starts
   if (session && (session.status === 'TRADING' || session.status === 'ANALYSIS')) {
     throw Object.assign(new Error('Cannot queue pre-simulation orders during an active session'), {
       status: 400,

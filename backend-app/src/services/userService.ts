@@ -1,18 +1,19 @@
 import {
-  createFreshAccount,
   getAccount,
-  getSessionByUser,
+  getAllAccounts,
+  getGlobalSession,
   persistAccount,
+  resetAccountById,
+  resetEveryAccount,
 } from '../store/memoryStore.js';
-import { resolveSimulationStartDate } from './simulationService.js';
 import { EMPTY_PORTFOLIO_START_DATE, type UserAccount } from '../types/index.js';
 import { roundMoney } from '../utils/helpers.js';
-import { saveUserAccount } from '../stubs/firebaseDb.js';
+import { listCatalogStocks } from './stockCatalog.js';
+import { resolveSimulationStartDate } from './simulationService.js';
 
 export async function getBootstrap(userId: string) {
   const account = await getAccount(userId);
-  const session = getSessionByUser(userId);
-  const { listCatalogStocks } = await import('./stockCatalog.js');
+  const session = getGlobalSession();
   const catalog = listCatalogStocks();
   return {
     user: account.user,
@@ -41,19 +42,7 @@ export async function getBootstrap(userId: string) {
 }
 
 export async function resetAccount(userId: string): Promise<UserAccount> {
-  const fresh = createFreshAccount();
-  fresh.user.id = userId;
-  // Preserve email/name from existing if present
-  try {
-    const prev = await getAccount(userId);
-    fresh.user.email = prev.user.email;
-    fresh.user.displayName = prev.user.displayName;
-  } catch {
-    /* new */
-  }
-  fresh.nextSimulationDate = EMPTY_PORTFOLIO_START_DATE;
-  await saveUserAccount(fresh);
-  return structuredClone(fresh);
+  return resetAccountById(userId);
 }
 
 export async function deposit(userId: string, amount: number): Promise<UserAccount> {
@@ -76,3 +65,30 @@ export async function deposit(userId: string, amount: number): Promise<UserAccou
   });
   return persistAccount(account);
 }
+
+export function adminMonitor() {
+  const accounts = getAllAccounts();
+  return {
+    users: accounts.map((a) => ({
+      userId: a.user.id,
+      displayName: a.user.displayName,
+      cashBalance: a.user.cashBalance,
+      holdings: a.holdings,
+      pendingOrders: a.orders.filter((o) => o.status === 'PENDING'),
+      recentLedger: a.ledger.slice(0, 25),
+      latestBuyDate: a.latestBuyDate,
+      nextSimulationDate: a.nextSimulationDate,
+    })),
+    session: getGlobalSession(),
+  };
+}
+
+export function adminResetAll(): number {
+  return resetEveryAccount();
+}
+
+export function adminResetUser(userId: string): UserAccount {
+  return resetAccountById(userId);
+}
+
+export { EMPTY_PORTFOLIO_START_DATE };

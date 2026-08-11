@@ -1,5 +1,4 @@
 import {
-  MAX_PORTFOLIO_HOLDINGS,
   type Holding,
   type LedgerEntry,
   type Order,
@@ -17,10 +16,8 @@ export function unitsHeld(holdings: Holding[], symbol: string): number {
   return holdings.find((h) => h.symbol === symbol)?.units ?? 0;
 }
 
-export function canAddHolding(holdings: Holding[], symbol: string): boolean {
-  const active = nonZeroHoldings(holdings);
-  if (active.some((h) => h.symbol === symbol)) return true;
-  return active.length < MAX_PORTFOLIO_HOLDINGS;
+export function canAddHolding(_holdings: Holding[], _symbol: string): boolean {
+  return true;
 }
 
 export function applyFill(
@@ -32,9 +29,6 @@ export function applyFill(
 ): LedgerEntry {
   const px = roundPrice(price);
   if (order.side === 'BUY') {
-    if (!canAddHolding(account.holdings, order.symbol)) {
-      throw Object.assign(new Error('Portfolio may hold at most 3 stocks'), { status: 400 });
-    }
     const cost = roundMoney(px * order.units);
     if (cost > account.user.cashBalance) {
       throw Object.assign(new Error('Insufficient cash balance'), { status: 400 });
@@ -108,9 +102,6 @@ export function validateOrderIntent(
     throw Object.assign(new Error('Units must be a positive whole number'), { status: 400 });
   }
   if (side === 'BUY') {
-    if (!canAddHolding(account.holdings, symbol)) {
-      throw Object.assign(new Error('Portfolio may hold at most 3 stocks'), { status: 400 });
-    }
     if (priceHint != null) {
       const cost = priceHint * units;
       if (cost > account.user.cashBalance) {
