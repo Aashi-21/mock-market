@@ -1,0 +1,6 @@
+# DATA/ ignore rules
+# Vendor OHLC dumps stay untracked. Fixtures + catalog are committed.
+*
+!.gitignore
+!MOCK_STOCK1.csv
+!stock_metadata.csv
