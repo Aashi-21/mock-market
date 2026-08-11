@@ -13,6 +13,10 @@ export const config = {
   corsOrigin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
   backendApiKey: process.env.BACKEND_API_KEY ?? '',
   stockDataApiKey: process.env.STOCK_DATA_API_KEY ?? '',
+  simulationAgentUrl: process.env.SIMULATION_AGENT_URL ?? 'http://localhost:8090',
+  simulationAgentApiKey: process.env.SIMULATION_AGENT_API_KEY ?? '',
+  /** Repo-root DATA/ with stock_metadata.csv + OHLC dumps */
+  dataDir: process.env.DATA_DIR ?? '',
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID ?? 'mock-market-local',
     authEmulator: (process.env.FIREBASE_AUTH_EMULATOR ?? 'true') === 'true',

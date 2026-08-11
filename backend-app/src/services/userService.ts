@@ -12,6 +12,8 @@ import { saveUserAccount } from '../stubs/firebaseDb.js';
 export async function getBootstrap(userId: string) {
   const account = await getAccount(userId);
   const session = getSessionByUser(userId);
+  const { listCatalogStocks } = await import('./stockCatalog.js');
+  const catalog = listCatalogStocks();
   return {
     user: account.user,
     portfolio: {
@@ -24,6 +26,17 @@ export async function getBootstrap(userId: string) {
     latestBuyDate: account.latestBuyDate,
     nextSimulationDate: resolveSimulationStartDate(account),
     session,
+    stocks: catalog.map((s) => ({
+      symbol: s.symbol,
+      name: s.name,
+      industry: s.industry,
+      series: s.series,
+      isin: s.isin,
+      exchange: s.exchange,
+      hasCsv: s.hasCsv,
+    })),
+    industries: [...new Set(catalog.map((s) => s.industry))].sort(),
+    seriesTypes: [...new Set(catalog.map((s) => s.series))].sort(),
   };
 }
 

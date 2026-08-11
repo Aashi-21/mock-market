@@ -66,6 +66,14 @@ export interface DayBar {
   close: number;
   high: number;
   low: number;
+  previousClose: number;
+  vwap: number;
+  last?: number;
+  volume?: number;
+  turnover?: number;
+  trades?: number;
+  deliverableVolume?: number;
+  deliverablePct?: number;
 }
 
 export interface LiveQuote {

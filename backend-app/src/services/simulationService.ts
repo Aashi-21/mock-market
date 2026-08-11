@@ -11,7 +11,7 @@ import {
   type SimulationSession,
   type UserAccount,
 } from '../types/index.js';
-import { fetchDayBars, getStockMeta, NIFTY_POOL } from '../stubs/stockPriceApi.js';
+import { fetchDayBars, getStockMeta, getNiftyPool } from '../stubs/stockPriceApi.js';
 import {
   clearSession,
   createSession,
@@ -22,7 +22,7 @@ import {
   saveSession,
 } from '../store/memoryStore.js';
 import { applyFill, nonZeroHoldings } from './portfolioMath.js';
-import { generateIntradayPath } from '../utils/pricePath.js';
+import { fetchIntradayPath, resampleCloses } from './simulationAgentClient.js';
 import { nextTradingDay, roundPrice } from '../utils/helpers.js';
 
 interface DayRuntime {
@@ -53,7 +53,11 @@ export function buildUniverse(account: UserAccount): string[] {
   for (const symbol of required) {
     if (getStockMeta(symbol) && !selected.includes(symbol)) selected.push(symbol);
   }
-  for (const meta of NIFTY_POOL) {
+  for (const meta of getNiftyPool().filter((m) => m.hasCsv)) {
+    if (selected.length >= SIMULATION_MARKET_SIZE) break;
+    if (!selected.includes(meta.symbol)) selected.push(meta.symbol);
+  }
+  for (const meta of getNiftyPool()) {
     if (selected.length >= SIMULATION_MARKET_SIZE) break;
     if (!selected.includes(meta.symbol)) selected.push(meta.symbol);
   }
@@ -129,7 +133,26 @@ async function beginTradingDay(sessionId: string): Promise<void> {
 
   for (const bar of bars) {
     const meta = getStockMeta(bar.symbol)!;
-    const path = generateIntradayPath(bar.open, bar.close, tickCount);
+    const sim = await fetchIntradayPath({
+      stockId: bar.symbol,
+      date: session.currentMarketDate,
+      dayBar: {
+        previous_close: bar.previousClose,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        last: bar.last ?? bar.close,
+        close: bar.close,
+        vwap: bar.vwap,
+        volume: bar.volume,
+        turnover: bar.turnover,
+        trades: bar.trades,
+        deliverable_volume: bar.deliverableVolume,
+        deliverable_pct: bar.deliverablePct,
+      },
+      seed: hashSeed(bar.symbol, session.currentMarketDate, session.cycle),
+    });
+    const path = resampleCloses(sim.closes, tickCount);
     paths.set(bar.symbol, path);
     const last = path[0];
     quotes.push({
@@ -140,8 +163,8 @@ async function beginTradingDay(sessionId: string): Promise<void> {
       open: bar.open,
       close: bar.close,
       lastPrice: last,
-      previousClose: bar.open,
-      dayChangePct: roundPrice(((last - bar.open) / bar.open) * 100),
+      previousClose: bar.previousClose,
+      dayChangePct: roundPrice(((last - bar.previousClose) / bar.previousClose) * 100),
       tickIndex: 0,
       tickCount,
     });
@@ -189,7 +212,7 @@ async function advanceTick(sessionId: string): Promise<void> {
     return {
       ...q,
       lastPrice,
-      dayChangePct: roundPrice(((lastPrice - q.open) / q.open) * 100),
+      dayChangePct: roundPrice(((lastPrice - q.previousClose) / q.previousClose) * 100),
       tickIndex: nextIndex,
     };
   });
@@ -215,7 +238,7 @@ async function enterAnalysis(sessionId: string): Promise<void> {
       return {
         ...q,
         lastPrice,
-        dayChangePct: roundPrice(((lastPrice - q.open) / q.open) * 100),
+        dayChangePct: roundPrice(((lastPrice - q.previousClose) / q.previousClose) * 100),
         tickIndex: session.tickCount - 1,
       };
     });
@@ -346,6 +369,16 @@ export async function executeLiveOrder(userId: string, order: Order): Promise<{
   applyFill(account, order, price, session.currentMarketDate, 'Live simulation fill');
   await persistAccount(account);
   return { order, account, session };
+}
+
+function hashSeed(symbol: string, date: string, cycle: number): number {
+  let h = 2166136261;
+  const text = `${symbol}|${date}|${cycle}`;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }
 
 function stopRuntimeTimers(

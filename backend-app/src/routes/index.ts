@@ -8,12 +8,80 @@ import * as simulationService from '../services/simulationService.js';
 import { getSessionByUser, waitForSessionUpdate } from '../store/memoryStore.js';
 import { config } from '../config.js';
 import { clearSession } from '../store/memoryStore.js';
+import { listCatalogStocks } from '../services/stockCatalog.js';
+import { fetchDayBar } from '../stubs/stockPriceApi.js';
+import { fetchCandles } from '../services/simulationAgentClient.js';
 
 export const router = Router();
 
 router.get('/health', (_req, res) => {
   res.json({ ok: true, service: 'backend-app' });
 });
+
+router.get(
+  '/stocks',
+  asyncHandler(async (req, res) => {
+    await authService.requireUser(req.header('authorization'));
+    const series = typeof req.query.series === 'string' ? req.query.series : undefined;
+    const industry = typeof req.query.industry === 'string' ? req.query.industry : undefined;
+    const catalog = listCatalogStocks({ series, industry });
+    res.json({
+      stocks: catalog.map((s) => ({
+        symbol: s.symbol,
+        name: s.name,
+        industry: s.industry,
+        series: s.series,
+        isin: s.isin,
+        exchange: s.exchange,
+        hasCsv: s.hasCsv,
+      })),
+      industries: [...new Set(listCatalogStocks().map((s) => s.industry))].sort(),
+      seriesTypes: [...new Set(listCatalogStocks().map((s) => s.series))].sort(),
+    });
+  }),
+);
+
+router.get(
+  '/market/candles/:symbol',
+  asyncHandler(async (req, res) => {
+    await authService.requireUser(req.header('authorization'));
+    const symbol = String(req.params.symbol);
+    const date = String(req.query.date ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      throw Object.assign(new Error('Query date=YYYY-MM-DD is required'), { status: 400 });
+    }
+    const upTo = req.query.upToMinute != null ? Number(req.query.upToMinute) : undefined;
+    const bar = await fetchDayBar(symbol, date);
+    const seed = Number(req.query.seed ?? 0) || undefined;
+    const result = await fetchCandles({
+      stockId: symbol,
+      date,
+      seed,
+      upToMinute: Number.isFinite(upTo) ? upTo : undefined,
+      dayBar: {
+        previous_close: bar.previousClose,
+        open: bar.open,
+        high: bar.high,
+        low: bar.low,
+        last: bar.last ?? bar.close,
+        close: bar.close,
+        vwap: bar.vwap,
+        volume: bar.volume,
+        turnover: bar.turnover,
+        trades: bar.trades,
+        deliverable_volume: bar.deliverableVolume,
+        deliverable_pct: bar.deliverablePct,
+      },
+    });
+    res.json({
+      symbol,
+      date,
+      candles: result.candles,
+      sessionId: result.session_id,
+      day: bar,
+    });
+  }),
+);
 
 router.post(
   '/auth/login',
